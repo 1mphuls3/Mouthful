@@ -1,0 +1,13 @@
+{
+  "itemGroup.mouthful": "Example Mod Tab",
+  "block.mouthful.example_block": "Example Block",
+  "item.mouthful.example_item": "Example Item",
+
+  "mouthful.configuration.title": "Mouthful Configs",
+  "mouthful.configuration.section.mouthful.common.toml": "Mouthful Configs",
+  "mouthful.configuration.section.mouthful.common.toml.title": "Mouthful Configs",
+  "mouthful.configuration.items": "Item List",
+  "mouthful.configuration.logDirtBlock": "Log Dirt Block",
+  "mouthful.configuration.magicNumberIntroduction": "Magic Number Text",
+  "mouthful.configuration.magicNumber": "Magic Number"
+}
