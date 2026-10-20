@@ -80,6 +80,10 @@ repositories {
     maven {
         url = "https://maven.blamejared.com/"
     }
+    maven {
+        name = 'Favouriteless Maven'
+        url 'https://maven.favouriteless.dev/releases'
+    }
 }
 
 dependencies {
@@ -87,6 +91,8 @@ dependencies {
     compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}"
 
     localRuntime "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
+
+    implementation "net.favouriteless.modopedia:modopedia-neoforge-${minecraft_version}:${modopedia_version}"
 }
 
 var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {

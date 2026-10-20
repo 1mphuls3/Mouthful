@@ -1,6 +1,7 @@
 package com.myst.mouthful;
 
 import com.myst.mouthful.client.entity.packfrog.PackFrogRenderer;
+import com.myst.mouthful.client.entity.pancaketoad.PancakeToadRenderer;
 import com.myst.mouthful.core.registries.EntityRegistry;
 import net.minecraft.client.renderer.entity.EntityRenderers;
 import net.neoforged.api.distmarker.Dist;
@@ -21,6 +22,7 @@ public class MouthfulClient {
 
     @SubscribeEvent
     static void onClientSetup(FMLClientSetupEvent event) {
-        EntityRenderers.register(EntityRegistry.PACKFROG.get(), PackFrogRenderer::new);
+        EntityRenderers.register(EntityRegistry.PACK_FROG.get(), PackFrogRenderer::new);
+        EntityRenderers.register(EntityRegistry.PANCAKE_TOAD.get(), PancakeToadRenderer::new);
     }
 }

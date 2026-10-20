@@ -1,5 +1,10 @@
 {
   "itemGroup.mouthful": "Mouthful",
-  "entity.mouthful.packfrog": "Packfrog",
-  "item.mouthful.packfrog_egg": "Packfrog Spawn Egg"
+  "entity.mouthful.pack_frog": "Pack Frog",
+  "entity.mouthful.pancake_toad": "Pancake Toad",
+  "item.mouthful.pack_frog_egg": "Pack Frog Spawn Egg",
+  "item.mouthful.pancake_toad_egg": "Pancake Toad Spawn Egg",
+
+  "frogstiary.mouthful.title": "Frogstiary",
+  "frogstiary.mouthful.subtitle": "Frogstiary Subtitle"
 }

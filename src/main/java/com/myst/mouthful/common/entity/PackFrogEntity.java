@@ -1,5 +1,6 @@
 package com.myst.mouthful.common.entity;
 
+import com.myst.mouthful.common.entity.ai.goal.CollectItemGoal;
 import com.myst.mouthful.common.menu.PackFrogMenu;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -12,29 +13,36 @@ import net.minecraft.world.*;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.entity.ai.goal.PanicGoal;
-import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
-import net.minecraft.world.entity.ai.goal.RandomStrollGoal;
-import net.minecraft.world.entity.ai.goal.TemptGoal;
+import net.minecraft.world.entity.ai.goal.*;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Vector3f;
+
+import java.util.random.RandomGenerator;
 
 public class PackFrogEntity extends TamableAnimal implements ContainerListener, HasCustomInventoryScreen {
+    public static final float MAX_TONGUE_TICKS = 10f;
     public final AnimationState openState = new AnimationState();
     public final AnimationState closeState = new AnimationState();
+    public final AnimationState idleState = new AnimationState();
+    private int idleAnimTimeout = 0;
 
     static int INVENTORY_SIZE = 27;
-    protected SimpleContainer inventory;
-    private static final EntityDataAccessor<Boolean> MOUTH_OPEN =
-            SynchedEntityData.defineId(PackFrogEntity.class, EntityDataSerializers.BOOLEAN);
+    public SimpleContainer inventory;
+    private static final EntityDataAccessor<Boolean> MOUTH_OPEN = SynchedEntityData.defineId(PackFrogEntity.class, EntityDataSerializers.BOOLEAN);
+    public static final EntityDataAccessor<Integer> TARGET_ID = SynchedEntityData.defineId(PackFrogEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> TONGUE_DELTA = SynchedEntityData.defineId(PackFrogEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<String> TONGUE_STATE = SynchedEntityData.defineId(PackFrogEntity.class, EntityDataSerializers.STRING);
 
     public PackFrogEntity(EntityType<? extends TamableAnimal> type, Level level) {
         super(type, level);
         this.createInventory();
+        this.clampHeadRotationToBody();
     }
 
     @Override
@@ -43,10 +51,12 @@ public class PackFrogEntity extends TamableAnimal implements ContainerListener, 
 
         goalSelector.addGoal(0, new PanicGoal(this, 0.18f));
 
-        goalSelector.addGoal(1, new RandomLookAroundGoal(this));
-        goalSelector.addGoal(2, new RandomStrollGoal(this, 0.15f, 60));
+        goalSelector.addGoal(1, new RandomSwimmingGoal(this, 0.15, 30));
+        goalSelector.addGoal(2, new RandomLookAroundGoal(this));
+        goalSelector.addGoal(3, new RandomStrollGoal(this, 0.15f, 60));
 
-        goalSelector.addGoal(3, new TemptGoal(this, 0.15f, stack -> stack.is(Items.SLIME_BALL), false));
+        goalSelector.addGoal(4, new TemptGoal(this, 0.15f, stack -> stack.is(Items.SLIME_BALL), false));
+        goalSelector.addGoal(5, new CollectItemGoal(this, 0.15f));
     }
 
     @Override
@@ -155,6 +165,13 @@ public class PackFrogEntity extends TamableAnimal implements ContainerListener, 
             openState.stop();
             closeState.start(this.tickCount);
         }
+        if(this.idleAnimTimeout <= 0) {
+            this.idleAnimTimeout = 60 + RandomGenerator.getDefault().nextInt(60);
+            this.idleState.start(this.tickCount);
+        }
+        else {
+            --this.idleAnimTimeout;
+        }
     }
 
     @Override
@@ -168,6 +185,35 @@ public class PackFrogEntity extends TamableAnimal implements ContainerListener, 
 
         if(this.level().isClientSide()) {
             setupAnimStates();
+        } else {
+            int delta = this.getTongueDelta();
+
+            if (delta >= MAX_TONGUE_TICKS) {
+                ItemEntity item = (ItemEntity) this.level().getEntity(this.getTargetID());
+
+                if (item != null) {
+                    this.inventory.addItem(item.getItem());
+                    this.setTargetID(-1);
+                    item.kill();
+                }
+                this.setTongueState("RETRACTING");
+            }
+
+            if(this.getTargetID() != -1 && this.getTongueState().equals("EXTENDING")) {
+                this.setTongueDelta(1 + delta);
+                this.setMouthOpen(true);
+            } else if (this.getTongueState().equals("RETRACTING")) {
+                this.setTongueDelta(delta - 1);
+                if(delta <= 0) {
+                    this.setTongueState("COMPLETE");
+                }
+            } else if (this.getTongueState().equals("COMPLETE")) {
+                this.setMouthOpen(false);
+                this.setTongueDelta(0);
+                this.setTongueState("IDLE");
+            } else if (this.getTongueState().equals("IDLE")) {
+                this.setTongueDelta(0);
+            }
         }
     }
 
@@ -175,7 +221,8 @@ public class PackFrogEntity extends TamableAnimal implements ContainerListener, 
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
 
-        builder.define(MOUTH_OPEN, false);
+        builder.define(MOUTH_OPEN, false).define(TARGET_ID, -1).define(TONGUE_DELTA, 0)
+                .define(TONGUE_STATE, "IDLE");
     }
 
     public void setMouthOpen(boolean open) {
@@ -184,5 +231,34 @@ public class PackFrogEntity extends TamableAnimal implements ContainerListener, 
 
     public boolean isMouthOpen() {
         return this.entityData.get(MOUTH_OPEN);
+    }
+
+    public void setTargetID(int id) {
+        this.entityData.set(TARGET_ID, id);
+    }
+
+    public int getTargetID() {
+        return this.entityData.get(TARGET_ID);
+    }
+
+    public void setTongueDelta(int delta) {
+        this.entityData.set(TONGUE_DELTA, delta);
+    }
+
+    public int getTongueDelta() {
+        return this.entityData.get(TONGUE_DELTA);
+    }
+
+    public void setTongueState(String state) {
+        this.entityData.set(TONGUE_STATE, state);
+    }
+
+    public String getTongueState() {
+        return this.entityData.get(TONGUE_STATE);
+    }
+
+    @Override
+    protected float getMaxHeadRotationRelativeToBody() {
+        return 0f;
     }
 }

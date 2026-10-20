@@ -25,7 +25,6 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 @Mod(Mouthful.MODID)
 public class Mouthful {
     public static final String MODID = "mouthful";
-    public static final Logger LOGGER = LogUtils.getLogger();
 
     public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MODID);
 
